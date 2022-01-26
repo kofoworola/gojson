@@ -2,6 +2,7 @@ package gen
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"testing"
 
@@ -10,10 +11,14 @@ import (
 
 func TestExtractStructs(t *testing.T) {
 	file, err := os.Open("simple_test.txt")
+	defer file.Close()
 	assert.Nil(t, err, "error opening file")
 	defer file.Close()
 
-	wrapper, err := NewFromInput(file)
+	dat, err := io.ReadAll(file)
+	assert.Nil(t, err)
+
+	wrapper, err := NewFromString(string(dat))
 	obj, err := wrapper.GenerateJSONAst()
 	assert.Nil(t, err, "error creating new wrapper")
 

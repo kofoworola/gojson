@@ -5,7 +5,6 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"io"
 	"math/rand"
 	"strings"
 	"time"
@@ -20,13 +19,14 @@ type GoWrapper struct {
 	file *ast.File
 	fset *token.FileSet
 
-	structs map[string]*ast.StructType
+	structs            map[string]*ast.StructType
+	orderedStructNames []string
 	// this will hold a map of field identifiers to their json keys
 	fieldNames       map[string]string
 	generatedStructs map[string]*jsonast.Object
 }
 
-func NewFromInput(input io.Reader) (*GoWrapper, error) {
+func NewFromString(input string) (*GoWrapper, error) {
 	var generator GoWrapper
 
 	fset := token.NewFileSet()
@@ -37,6 +37,7 @@ func NewFromInput(input io.Reader) (*GoWrapper, error) {
 
 	generator.fset = fset
 	generator.file = file
+	generator.orderedStructNames = make([]string, 0)
 	generator.structs = make(map[string]*ast.StructType)
 	generator.fieldNames = make(map[string]string)
 	generator.generatedStructs = make(map[string]*jsonast.Object)
@@ -62,6 +63,7 @@ func (g *GoWrapper) extractStructs() {
 			continue
 		}
 		g.structs[spec.Name.Name] = t
+		g.orderedStructNames = append(g.orderedStructNames, spec.Name.Name)
 	}
 }
 
@@ -134,7 +136,8 @@ func (g *GoWrapper) GenerateJSONAst() ([]*jsonast.Object, error) {
 		return nil, err
 	}
 	var objects []*jsonast.Object
-	for name, s := range g.structs {
+	for _, name := range g.orderedStructNames {
+		s := g.structs[name]
 		objects = append(objects, g.structToJsonObject(name, s))
 	}
 	return objects, nil
@@ -230,9 +233,7 @@ func (g *GoWrapper) arrayToJsonObject(arr *ast.ArrayType) *jsonast.Array {
 		}
 		if str, ok := g.structs[t]; ok {
 			jsonObj := g.structToJsonObject(t, str)
-			for i := 0; i < 2; i++ {
-				children = append(children, jsonObj)
-			}
+			children = append(children, jsonObj)
 		}
 	}
 	if str, ok := arr.Elt.(*ast.StructType); ok {

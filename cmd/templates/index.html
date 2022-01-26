@@ -5,20 +5,42 @@
     <link href="/assets/main.css" rel="stylesheet" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@1,300&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,700;1,300&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.4.0/styles/default.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.4.0/highlight.min.js"></script>
 </head>
 
 <body>
     <div class="main-container">
         <div class="nav-container">
             <div class="title">
-                <h1>GOJSON <span>Go struct to json payload generator</span></h1>
+                <h1>GO2JSON <span>Go struct to json payload generator</span></h1>
             </div>
             <div class="nav">
                 <a href="https://github.com/kofoworola/gojson">github</a>
             </div>
         </div>
+        <div class="content">
+            <form action="/" method="POST">
+                <h3>Input Golang data</h3>
+                <textarea name="godata" placeholder="go data goes here...">{{ .GOData }}</textarea>
+                <h3>Indentation string</h3>
+                <input name="indentation" value="\t" />
+                <div class="button-container">
+                    <button type="submit"> >Convert< </button>
+                </div>
+                <h3>JSON Output</h3>
+                <pre><code class="language-json">{{ .JSONData }}</code></pre>
+            </form>
+        </div>
+        <div class="footer">
+            <p>Developed with ❤️ by <a href="kofo.dev">kofoworola</a></p>
+        </div>
     </div>
+    <script>
+        hljs.highlightAll();
+    </script>
 </body>
 
 </html>

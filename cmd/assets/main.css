@@ -1,3 +1,7 @@
+html {
+    font-family: 'Lato', sans-serif;
+}
+
 .main-container {
     max-width: 1170px;
     margin: auto;
@@ -8,6 +12,7 @@
 .nav-container {
     padding: 20px 10px;
     font-family: 'Lato', sans-serif;
+    font-style: italic;
     display: flex;
     flex-direction: row;
     justify-content: space-between;
@@ -15,8 +20,16 @@
 }
 
 .nav-container h1 {
-    font-size: 30px;
     display: flex;
+}
+
+h1 {
+    font-size: 30px;
+}
+
+h3 {
+    font-weight: bold;
+    font-size: 20px;
 }
 
 .nav-container h1 span {
@@ -31,4 +44,64 @@
 body {
     margin: 0px;
     background-color: #e1e0e0;
+}
+
+.content {
+    padding: 30px;
+}
+
+form textarea,
+form input {
+    font-size: inherit;
+    display: block;
+    width: 100%;
+    background-color: #fdfdfd;
+    border-radius: 3px;
+    border: 2px solid #d7d7d7;
+    padding: 10px;
+    font-family: 'Source Code Pro', monospace;
+}
+
+form textarea {
+    min-height: 35vh;
+}
+
+textarea:disabled {
+    background-color: #c1c1c1;
+}
+
+.button-container {
+    text-align: right;
+}
+
+form button {
+    margin: 20px 0 20px 0;
+    background: linear-gradient( 0deg, rgba(11, 117, 199, 1) 35%, rgba(0, 212, 255, 1) 100%);
+    color: white;
+    font-family: Lato, sans-serif;
+    border: none;
+    font-size: 20px;
+    padding: 10px 30px;
+    border-radius: 4px;
+}
+
+form button:active {
+    box-shadow: 13px 12px 36px -12px rgba(0, 0, 0, 0.75) inset;
+    -webkit-box-shadow: 13px 12px 36px -12px rgba(0, 0, 0, 0.75) inset;
+    -moz-box-shadow: 13px 12px 36px -12px rgba(0, 0, 0, 0.75) inset;
+}
+
+.footer {
+    padding: 20px;
+    font-size: large;
+    text-align: center;
+}
+
+.code {
+    display: block;
+}
+
+code {
+    min-height: 30vh;
+    font-size: 16px;
 }

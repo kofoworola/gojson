@@ -32,7 +32,7 @@ func (o *Object) String(indentCount int) string {
 	builder.WriteString("{")
 	for name, c := range o.Children {
 		builder.WriteString(fmt.Sprintf(
-			"\n%s\"%s\":%s,",
+			"\n%s\"%s\": %s,",
 			strings.Repeat(INDENTSTRING, indentCount+1),
 			name,
 			c.String(indentCount+1),
@@ -73,9 +73,9 @@ func (l *Literal) isValue() {}
 func (l *Literal) String(indentCount int) string {
 	switch l.Type {
 	case StringType:
-		return fmt.Sprintf(`%s"`, l.Value.(string))
+		return fmt.Sprintf(`"%s"`, l.Value.(string))
 	case IntegerType:
-		return fmt.Sprintf(`"%d"`, l.Value.(int64))
+		return fmt.Sprintf(`%d`, l.Value.(int64))
 	case BoolType:
 		v := l.Value.(bool)
 		if v {
