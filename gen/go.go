@@ -11,7 +11,6 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/brianvoe/gofakeit"
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/iancoleman/strcase"
 	"github.com/kofoworola/gojson/jsonast"
@@ -23,7 +22,8 @@ type GoWrapper struct {
 
 	structs map[string]*ast.StructType
 	// this will hold a map of field identifiers to their json keys
-	fieldNames map[string]string
+	fieldNames       map[string]string
+	generatedStructs map[string]*jsonast.Object
 }
 
 func NewFromInput(input io.Reader) (*GoWrapper, error) {
@@ -39,6 +39,7 @@ func NewFromInput(input io.Reader) (*GoWrapper, error) {
 	generator.file = file
 	generator.structs = make(map[string]*ast.StructType)
 	generator.fieldNames = make(map[string]string)
+	generator.generatedStructs = make(map[string]*jsonast.Object)
 
 	return &generator, nil
 }
@@ -84,18 +85,6 @@ func (g *GoWrapper) generateFieldNames() error {
 				continue
 			}
 
-			// quickly check if the field is an embedded struct and add to list
-			// or if the field is an array of embedded struct
-			if strType, ok := field.Type.(*ast.StructType); ok {
-				g.structs[field.Names[0].Name] = strType
-			}
-
-			if arrType, ok := field.Type.(*ast.ArrayType); ok {
-				if strType, ok := arrType.Elt.(*ast.StructType); ok {
-					g.structs[field.Names[0].Name] = strType
-				}
-			}
-
 			// use the format structname_fieldname as the field name key
 			fieldName := fmt.Sprintf("%s_%s", name, field.Names[0].Name)
 			jsonName, err := g.getFieldJsonName(field)
@@ -139,17 +128,28 @@ func (g *GoWrapper) getFieldJsonName(field *ast.Field) (string, error) {
 	return name, nil
 }
 
-//func (g *GoWrapper) GenerateJSONAst() (*jsonast.Object, error) {
-//	var objects []*jsonast.Object
-//	for name, s := range g.structs {
-//		properties := make(map[string]jsonast.Value)
-//	}
-//	return nil, nil
-//}
+func (g *GoWrapper) GenerateJSONAst() ([]*jsonast.Object, error) {
+	g.extractStructs()
+	if err := g.generateFieldNames(); err != nil {
+		return nil, err
+	}
+	var objects []*jsonast.Object
+	for name, s := range g.structs {
+		objects = append(objects, g.structToJsonObject(name, s))
+	}
+	return objects, nil
+}
 
 func (g *GoWrapper) structToJsonObject(name string, str *ast.StructType) *jsonast.Object {
+	if res, ok := g.generatedStructs[name]; ok {
+		return res
+	}
+
 	properties := make(map[string]jsonast.Value)
 	for _, field := range str.Fields.List {
+		if field == nil {
+			continue
+		}
 		fieldName := fmt.Sprintf("%s_%s", name, field.Names[0].Name)
 		jsonName := g.fieldNames[fieldName]
 		if ident, ok := field.Type.(*ast.Ident); ok {
@@ -166,13 +166,68 @@ func (g *GoWrapper) structToJsonObject(name string, str *ast.StructType) *jsonas
 				}
 			case "string":
 				properties[jsonName] = &jsonast.Literal{
-					Type:  jsonast.IntegerType,
-					Value: "",
+					Type:  jsonast.StringType,
+					Value: randStringGenerator(jsonName),
+				}
+			case "bool":
+				properties[jsonName] = &jsonast.Literal{
+					Type:  jsonast.BoolType,
+					Value: true,
 				}
 			}
 		}
+		if arr, ok := field.Type.(*ast.ArrayType); ok {
+			properties[jsonName] = g.arrayToJsonObject(arr)
+		}
 	}
-	return nil
+	obj := &jsonast.Object{
+		Key:      name,
+		Children: properties,
+	}
+	g.generatedStructs[name] = obj
+	return obj
+}
+
+func (g *GoWrapper) arrayToJsonObject(arr *ast.ArrayType) *jsonast.Array {
+	children := make([]jsonast.Value, 0)
+	if ident, ok := arr.Elt.(*ast.Ident); ok {
+		t := ident.Name
+		var funcGen func() interface{}
+		var jsonType jsonast.LiteralType
+		switch t {
+		case "int":
+			funcGen = func() interface{} { return randNumber() }
+			jsonType = jsonast.IntegerType
+		case "string":
+			funcGen = func() interface{} { return randStringGenerator("") }
+			jsonType = jsonast.StringType
+		case "bool":
+			funcGen = func() interface{} { return true }
+			jsonType = jsonast.BoolType
+		}
+		if t == "int" || t == "string" || t == "bool" {
+			for i := 0; i < 5; i++ {
+				children = append(
+					children,
+					&jsonast.Literal{
+						Type:  jsonType,
+						Value: funcGen(),
+					},
+				)
+			}
+		}
+		if str, ok := g.structs[t]; ok {
+			jsonObj := g.structToJsonObject(t, str)
+			for i := 0; i < 2; i++ {
+				children = append(children, jsonObj)
+			}
+		}
+	}
+
+	return &jsonast.Array{
+		Children: children,
+	}
+
 }
 
 func randNumber() int64 {
@@ -190,12 +245,14 @@ func randStringGenerator(fieldName string) string {
 		val = gofakeit.Name()
 	case "company":
 		val = gofakeit.Company()
+	case "country":
+		val = gofakeit.Country()
 	default:
-		val = gofakeit.Name()
+		val = gofakeit.SentenceSimple()
 	}
 
 	if strings.HasSuffix(fieldName, "address") {
-		val = gofakeit.Address().Address()
+		val = gofakeit.Address().Address
 	}
 	if strings.HasSuffix(fieldName, "phone") {
 		val = gofakeit.Phone()

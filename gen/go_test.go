@@ -1,6 +1,7 @@
 package gen
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -13,16 +14,8 @@ func TestExtractStructs(t *testing.T) {
 	defer file.Close()
 
 	wrapper, err := NewFromInput(file)
+	obj, err := wrapper.GenerateJSONAst()
 	assert.Nil(t, err, "error creating new wrapper")
-	wrapper.extractStructs()
-	assert.Len(t, wrapper.structs, 2)
 
-	if err := wrapper.generateFieldNames(); err != nil {
-		t.Fatal(err)
-	}
-
-	assert.Len(t, wrapper.fieldNames, 5)
-	assert.Len(t, wrapper.structs, 3)
-	assert.Equal(t, "test", wrapper.fieldNames["test_Name"])
-	assert.Equal(t, "pass_is", wrapper.fieldNames["test_PassIs"])
+	fmt.Println(obj)
 }
