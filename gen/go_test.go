@@ -17,5 +17,7 @@ func TestExtractStructs(t *testing.T) {
 	obj, err := wrapper.GenerateJSONAst()
 	assert.Nil(t, err, "error creating new wrapper")
 
-	fmt.Println(obj)
+	for _, o := range obj {
+		fmt.Printf("value is:\n%s\n\n", o.String())
+	}
 }
