@@ -13,9 +13,11 @@ const (
 	BoolType
 )
 
+const INDENTSTRING = "\t"
+
 type Value interface {
 	isValue()
-	String() string
+	String(indentCount int) string
 }
 
 type Object struct {
@@ -25,14 +27,19 @@ type Object struct {
 
 func (o *Object) isValue() {}
 
-func (o *Object) String() string {
+func (o *Object) String(indentCount int) string {
 	builder := strings.Builder{}
-	builder.WriteRune('{')
+	builder.WriteString("{")
 	for name, c := range o.Children {
-		builder.WriteString(fmt.Sprintf(`"%s":%s,`, name, c.String()))
+		builder.WriteString(fmt.Sprintf(
+			"\n%s\"%s\":%s,",
+			strings.Repeat(INDENTSTRING, indentCount+1),
+			name,
+			c.String(indentCount+1),
+		))
 	}
 	gen := strings.TrimSuffix(builder.String(), ",")
-	return gen + "}"
+	return fmt.Sprintf("%s\n%s}", gen, strings.Repeat(INDENTSTRING, indentCount))
 }
 
 type Array struct {
@@ -41,18 +48,18 @@ type Array struct {
 
 func (a *Array) isValue() {}
 
-func (a *Array) String() string {
+func (a *Array) String(indentCount int) string {
 	builder := strings.Builder{}
-	builder.WriteRune('[')
-	for i, c := range a.Children {
-		builder.WriteString(c.String())
-		if i != len(a.Children)-1 {
-			builder.WriteRune(',')
-		}
+	builder.WriteString("[")
+	for _, c := range a.Children {
+		builder.WriteString(fmt.Sprintf(
+			"\n%s%s,",
+			strings.Repeat(INDENTSTRING, indentCount+1),
+			c.String(indentCount+1),
+		))
 	}
-	builder.WriteRune(']')
-
-	return builder.String()
+	gen := strings.TrimSuffix(builder.String(), ",")
+	return fmt.Sprintf("%s\n%s]", gen, strings.Repeat(INDENTSTRING, indentCount))
 
 }
 
@@ -63,10 +70,10 @@ type Literal struct {
 
 func (l *Literal) isValue() {}
 
-func (l *Literal) String() string {
+func (l *Literal) String(indentCount int) string {
 	switch l.Type {
 	case StringType:
-		return fmt.Sprintf(`"%s"`, l.Value.(string))
+		return fmt.Sprintf(`%s"`, l.Value.(string))
 	case IntegerType:
 		return fmt.Sprintf(`"%d"`, l.Value.(int64))
 	case BoolType:

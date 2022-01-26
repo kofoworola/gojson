@@ -18,6 +18,6 @@ func TestExtractStructs(t *testing.T) {
 	assert.Nil(t, err, "error creating new wrapper")
 
 	for _, o := range obj {
-		fmt.Printf("value is:\n%s\n\n", o.String())
+		fmt.Printf("value is:\n%s\n\n", o.String(0))
 	}
 }
