@@ -1,0 +1,34 @@
+.main-container {
+    max-width: 1170px;
+    margin: auto;
+    background: white;
+    min-height: 100%;
+}
+
+.nav-container {
+    padding: 20px 10px;
+    font-family: 'Lato', sans-serif;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    border-bottom: 3px solid #e5e5e5;
+}
+
+.nav-container h1 {
+    font-size: 30px;
+    display: flex;
+}
+
+.nav-container h1 span {
+    font-size: 15px;
+    display: inline-flex;
+    align-content: center;
+    align-items: flex-end;
+    margin-left: 1rem;
+    padding: 5px;
+}
+
+body {
+    margin: 0px;
+    background-color: #e1e0e0;
+}

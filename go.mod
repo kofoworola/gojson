@@ -6,6 +6,7 @@ require (
 	github.com/bradford-hamilton/dora v0.1.1
 	github.com/brianvoe/gofakeit v3.18.0+incompatible
 	github.com/brianvoe/gofakeit/v6 v6.14.3
+	github.com/gorilla/mux v1.8.0
 	github.com/iancoleman/strcase v0.2.0
 	github.com/stretchr/testify v1.7.0
 )
