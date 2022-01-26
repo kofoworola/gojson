@@ -152,6 +152,15 @@ func (g *GoWrapper) structToJsonObject(name string, str *ast.StructType) *jsonas
 		}
 		fieldName := fmt.Sprintf("%s_%s", name, field.Names[0].Name)
 		jsonName := g.fieldNames[fieldName]
+		if jsonName == "" {
+			name, err := g.getFieldJsonName(field)
+			if err != nil {
+				panic(err)
+			}
+
+			jsonName = name
+		}
+
 		if ident, ok := field.Type.(*ast.Ident); ok {
 			// check if it is a string, int, bool, custom struct identifier
 			if val, ok := g.structs[ident.Name]; ok {
@@ -178,6 +187,9 @@ func (g *GoWrapper) structToJsonObject(name string, str *ast.StructType) *jsonas
 		}
 		if arr, ok := field.Type.(*ast.ArrayType); ok {
 			properties[jsonName] = g.arrayToJsonObject(arr)
+		}
+		if str, ok := field.Type.(*ast.StructType); ok {
+			properties[jsonName] = g.structToJsonObject(field.Names[0].Name, str)
 		}
 	}
 	obj := &jsonast.Object{
@@ -222,6 +234,13 @@ func (g *GoWrapper) arrayToJsonObject(arr *ast.ArrayType) *jsonast.Array {
 				children = append(children, jsonObj)
 			}
 		}
+	}
+	if str, ok := arr.Elt.(*ast.StructType); ok {
+		jsonObj := g.structToJsonObject("", str)
+		for i := 0; i < 2; i++ {
+			children = append(children, jsonObj)
+		}
+
 	}
 
 	return &jsonast.Array{

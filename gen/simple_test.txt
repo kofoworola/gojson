@@ -7,7 +7,7 @@ type test struct{
   
   Second second
   
-  Third struct{
+  Third []struct{
     first string
   }
 
