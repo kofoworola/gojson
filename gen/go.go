@@ -7,6 +7,7 @@ import (
 	"go/token"
 	"io"
 	"strings"
+	"unicode"
 
 	"github.com/iancoleman/strcase"
 )
@@ -54,23 +55,36 @@ func (g *GoWrapper) extractStructs() {
 		if !ok {
 			continue
 		}
-
 		g.structs[spec.Name.Name] = t
 	}
 }
 
+func isCapitalized(name string) bool {
+	runes := []rune(name)
+	if len(runes) < 1 {
+		return false
+	}
+	return unicode.IsUpper(runes[0])
+}
+
 func (g *GoWrapper) generateFieldNames() error {
 	for name, s := range g.structs {
-		for _, field := range s.Fields.List {
+		for i, field := range s.Fields.List {
 			if len(field.Names) != 1 {
 				return fmt.Errorf("illegal field at %s", g.fset.Position(field.Pos()).String())
 			}
+			// If the field is not capitalized nilify(tm) it and skip
+			if !isCapitalized(field.Names[0].Name) {
+				s.Fields.List[i] = nil
+				continue
+			}
+
+			fieldName := fmt.Sprintf("%s_%s", name, field.Names[0].Name)
 			jsonName, err := g.getFieldJsonName(field)
 			if err != nil {
 				return err
 			}
 
-			fieldName := fmt.Sprintf("%s_%s", name, field.Names[0].Name)
 			g.fieldNames[fieldName] = jsonName
 		}
 	}
@@ -105,5 +119,15 @@ func (g *GoWrapper) getFieldJsonName(field *ast.Field) (string, error) {
 		}
 	}
 	return name, nil
+}
 
+func (g *GoWrapper) GenerateJsonAst() (*JSONWrapper, error) {
+	//	var rootNodes []*jsonast.RootNode
+	//	for name, s := range g.structs {
+	//		root := jsonast.RootNode{
+	//			Type: jsonast.ObjectRoot,
+	//		}
+	//	}
+
+	return nil, nil
 }

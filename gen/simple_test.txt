@@ -3,6 +3,7 @@ package main
 type test struct{
   Name string `json:"test"`
 	PassIs int
+	unexported int
 }
 
 type testString string
