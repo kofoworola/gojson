@@ -1,0 +1,11 @@
+package main
+
+type test struct{
+  Name string `json:"test"`
+	PassIs int
+}
+
+type testString string
+
+func (t *test) testFunc() error{
+}
