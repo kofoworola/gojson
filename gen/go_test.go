@@ -15,14 +15,14 @@ func TestExtractStructs(t *testing.T) {
 	wrapper, err := NewFromInput(file)
 	assert.Nil(t, err, "error creating new wrapper")
 	wrapper.extractStructs()
-
-	assert.Len(t, wrapper.structs, 1)
+	assert.Len(t, wrapper.structs, 2)
 
 	if err := wrapper.generateFieldNames(); err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Len(t, wrapper.fieldNames, 2)
+	assert.Len(t, wrapper.fieldNames, 5)
+	assert.Len(t, wrapper.structs, 3)
 	assert.Equal(t, "test", wrapper.fieldNames["test_Name"])
 	assert.Equal(t, "pass_is", wrapper.fieldNames["test_PassIs"])
 }

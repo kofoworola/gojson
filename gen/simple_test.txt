@@ -4,9 +4,17 @@ type test struct{
   Name string `json:"test"`
 	PassIs int
 	unexported int
+  
+  Second second
+  
+  Third struct{
+    first string
+  }
 }
 
-type testString string
+type second struct {
+  Name string 
+}
 
 func (t *test) testFunc() error{
 }

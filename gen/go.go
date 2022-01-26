@@ -6,10 +6,15 @@ import (
 	"go/parser"
 	"go/token"
 	"io"
+	"math/rand"
 	"strings"
+	"time"
 	"unicode"
 
+	"github.com/brianvoe/gofakeit"
+	"github.com/brianvoe/gofakeit/v6"
 	"github.com/iancoleman/strcase"
+	"github.com/kofoworola/gojson/jsonast"
 )
 
 type GoWrapper struct {
@@ -79,6 +84,19 @@ func (g *GoWrapper) generateFieldNames() error {
 				continue
 			}
 
+			// quickly check if the field is an embedded struct and add to list
+			// or if the field is an array of embedded struct
+			if strType, ok := field.Type.(*ast.StructType); ok {
+				g.structs[field.Names[0].Name] = strType
+			}
+
+			if arrType, ok := field.Type.(*ast.ArrayType); ok {
+				if strType, ok := arrType.Elt.(*ast.StructType); ok {
+					g.structs[field.Names[0].Name] = strType
+				}
+			}
+
+			// use the format structname_fieldname as the field name key
 			fieldName := fmt.Sprintf("%s_%s", name, field.Names[0].Name)
 			jsonName, err := g.getFieldJsonName(field)
 			if err != nil {
@@ -121,13 +139,67 @@ func (g *GoWrapper) getFieldJsonName(field *ast.Field) (string, error) {
 	return name, nil
 }
 
-func (g *GoWrapper) GenerateJsonAst() (*JSONWrapper, error) {
-	//	var rootNodes []*jsonast.RootNode
-	//	for name, s := range g.structs {
-	//		root := jsonast.RootNode{
-	//			Type: jsonast.ObjectRoot,
-	//		}
-	//	}
+//func (g *GoWrapper) GenerateJSONAst() (*jsonast.Object, error) {
+//	var objects []*jsonast.Object
+//	for name, s := range g.structs {
+//		properties := make(map[string]jsonast.Value)
+//	}
+//	return nil, nil
+//}
 
-	return nil, nil
+func (g *GoWrapper) structToJsonObject(name string, str *ast.StructType) *jsonast.Object {
+	properties := make(map[string]jsonast.Value)
+	for _, field := range str.Fields.List {
+		fieldName := fmt.Sprintf("%s_%s", name, field.Names[0].Name)
+		jsonName := g.fieldNames[fieldName]
+		if ident, ok := field.Type.(*ast.Ident); ok {
+			// check if it is a string, int, bool, custom struct identifier
+			if val, ok := g.structs[ident.Name]; ok {
+				properties[jsonName] = g.structToJsonObject(ident.Name, val)
+				continue
+			}
+			switch ident.Name {
+			case "int":
+				properties[jsonName] = &jsonast.Literal{
+					Type:  jsonast.IntegerType,
+					Value: randNumber(),
+				}
+			case "string":
+				properties[jsonName] = &jsonast.Literal{
+					Type:  jsonast.IntegerType,
+					Value: "",
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func randNumber() int64 {
+	source := rand.NewSource(time.Now().UnixNano())
+	r := rand.New(source)
+	return r.Int63()
+}
+
+func randStringGenerator(fieldName string) string {
+	var val string
+	switch fieldName {
+	case "email":
+		val = gofakeit.Email()
+	case "name", "first_name", "last_name", "middle_name":
+		val = gofakeit.Name()
+	case "company":
+		val = gofakeit.Company()
+	default:
+		val = gofakeit.Name()
+	}
+
+	if strings.HasSuffix(fieldName, "address") {
+		val = gofakeit.Address().Address()
+	}
+	if strings.HasSuffix(fieldName, "phone") {
+		val = gofakeit.Phone()
+	}
+
+	return val
 }
