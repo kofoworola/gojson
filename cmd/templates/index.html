@@ -5,7 +5,7 @@
     <link href="/assets/main.css" rel="stylesheet" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,700;1,300&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,700;1,300;1,700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.4.0/styles/default.min.css">
     <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.4.0/highlight.min.js"></script>
@@ -24,9 +24,9 @@
         <div class="content">
             <form action="/" method="POST">
                 <h3>Input Golang data</h3>
+                <p class="error-message">{{ .ErrorMessage }}</p>
                 <textarea name="godata" placeholder="go data goes here...">{{ .GOData }}</textarea>
                 <h3>Indentation string</h3>
-                <input name="indentation" value="\t" />
                 <div class="button-container">
                     <button type="submit"> >Convert< </button>
                 </div>

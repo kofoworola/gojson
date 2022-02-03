@@ -9,7 +9,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/kofoworola/gojson/gen"
-	"github.com/sirupsen/logrus"
+	"github.com/kofoworola/gojson/logging"
 )
 
 //go:embed templates/index.html
@@ -24,14 +24,16 @@ var sampleData string
 type Handler struct {
 	template *template.Template
 	mux      *mux.Router
+	logger   *logging.Logger
 }
 
 type homePageData struct {
-	GOData   string
-	JSONData string
+	GOData       string
+	JSONData     string
+	ErrorMessage string
 }
 
-func NewHandler() (*Handler, error) {
+func NewHandler(logger *logging.Logger) (*Handler, error) {
 	t, err := template.New("index").Parse(indexHTML)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing template: %w", err)
@@ -39,6 +41,7 @@ func NewHandler() (*Handler, error) {
 
 	h := &Handler{
 		template: t,
+		logger:   logger,
 	}
 
 	r := mux.NewRouter()
@@ -49,44 +52,54 @@ func NewHandler() (*Handler, error) {
 	return h, nil
 }
 
-func (s *Handler) HomePage(w http.ResponseWriter, req *http.Request) {
+func (h *Handler) HomePage(w http.ResponseWriter, req *http.Request) {
 
-	s.template.Execute(w, homePageData{
+	h.template.Execute(w, homePageData{
 		GOData: sampleData,
 	})
 }
 
-func (s *Handler) PostHomePage(w http.ResponseWriter, req *http.Request) {
+func (h *Handler) PostHomePage(w http.ResponseWriter, req *http.Request) {
+	logger := logging.FromContext(req.Context())
+
 	if err := req.ParseForm(); err != nil {
-		logrus.Errorf("error parsing input: %v", err)
-		http.Error(w, "error reading input", http.StatusBadRequest)
+		logger.Errorf("error parsing input: %v", err)
+		h.respondError(w, "error reading input", sampleData, http.StatusBadRequest)
 		return
 	}
 
 	godata := req.PostForm.Get("godata")
 	if godata == "" {
-		http.Error(w, "go input can not be null", http.StatusBadRequest)
+		h.respondError(w, "go input can not be null", sampleData, http.StatusBadRequest)
 		return
 	}
+	logger = logger.WithField("godata", godata)
+
+	defer func() {
+		if err := recover(); err != nil {
+			logger.Errorf("panic: %v", err)
+			h.respondError(w, "internal server error", godata, http.StatusInternalServerError)
+		}
+	}()
 
 	wrapper, err := gen.NewFromString(godata)
 	if err != nil {
-		logrus.Errorf("error creating go wrapper: %v", err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		logger.Errorf("error creating go wrapper: %v", err)
+		h.respondError(w, fmt.Sprintf("syntax error: %v", err), godata, http.StatusBadRequest)
 		return
 	}
 
 	resp, err := wrapper.GenerateJSONAst()
 	if err != nil {
-		logrus.Errorf("error generating json: %v", err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		logger.Errorf("error generating json: %v", err)
+		h.respondError(w, fmt.Sprintf("error parsing fields: %v", err), godata, http.StatusBadRequest)
 		return
 
 	}
 
 	respStrings := make([]string, len(resp))
 	for i, res := range resp {
-		respStrings[i] = res.String(0)
+		respStrings[i] = fmt.Sprintf("//%s\n%s", res.Key, res.String(0))
 	}
 
 	dat := homePageData{
@@ -94,21 +107,32 @@ func (s *Handler) PostHomePage(w http.ResponseWriter, req *http.Request) {
 		JSONData: strings.Join(respStrings, "\n"),
 	}
 
-	s.template.Execute(w, dat)
+	h.template.Execute(w, dat)
 
 }
 
+func (h *Handler) respondError(w http.ResponseWriter, message, godata string, code int) {
+	dat := homePageData{
+		GOData:       godata,
+		ErrorMessage: message,
+	}
+	w.WriteHeader(code)
+	h.template.Execute(w, dat)
+}
+
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	logger := h.logger.WithField("path", r.URL.Path)
+	req := r.WithContext(logging.ToContext(r.Context(), logger))
 	path := strings.TrimPrefix(r.URL.Path, "/")
 	if strings.HasPrefix(path, "assets") {
 		file, err := fs.ReadFile(path)
 		if err != nil {
-			http.NotFound(w, r)
+			http.NotFound(w, req)
 			return
 		}
 		fmt.Fprint(w, string(file))
 		return
 	} else {
-		h.mux.ServeHTTP(w, r)
+		h.mux.ServeHTTP(w, req)
 	}
 }

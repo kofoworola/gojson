@@ -15,6 +15,7 @@ import (
 	"github.com/kofoworola/gojson/jsonast"
 )
 
+//TODO: proper debug logging
 type GoWrapper struct {
 	file *ast.File
 	fset *token.FileSet
