@@ -22,24 +22,28 @@ var fs embed.FS
 var sampleData string
 
 type Handler struct {
+	appName string
+
 	template *template.Template
 	mux      *mux.Router
 	logger   *logging.Logger
 }
 
 type homePageData struct {
+	AppName      string
 	GOData       string
 	JSONData     string
 	ErrorMessage string
 }
 
-func NewHandler(logger *logging.Logger) (*Handler, error) {
+func NewHandler(appName string, logger *logging.Logger) (*Handler, error) {
 	t, err := template.New("index").Parse(indexHTML)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing template: %w", err)
 	}
 
 	h := &Handler{
+		appName:  appName,
 		template: t,
 		logger:   logger,
 	}
@@ -55,7 +59,8 @@ func NewHandler(logger *logging.Logger) (*Handler, error) {
 func (h *Handler) HomePage(w http.ResponseWriter, req *http.Request) {
 
 	h.template.Execute(w, homePageData{
-		GOData: sampleData,
+		AppName: h.appName,
+		GOData:  sampleData,
 	})
 }
 
@@ -113,6 +118,7 @@ func (h *Handler) PostHomePage(w http.ResponseWriter, req *http.Request) {
 
 func (h *Handler) respondError(w http.ResponseWriter, message, godata string, code int) {
 	dat := homePageData{
+		AppName:      h.appName,
 		GOData:       godata,
 		ErrorMessage: message,
 	}

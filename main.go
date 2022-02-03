@@ -16,6 +16,7 @@ type Config struct {
 	Port        string `default:"8080"`
 	Environment string `envconfig:"env" default:"development"`
 	LogPath     string `default:"/var/log/"`
+	AppName     string `default:"GO2JSON"`
 }
 
 func main() {
@@ -37,7 +38,7 @@ func main() {
 		cancel()
 	}()
 
-	handler, err := NewHandler(logger)
+	handler, err := NewHandler(cfg.AppName, logger)
 	if err != nil {
 		log.Fatal(err)
 	}
