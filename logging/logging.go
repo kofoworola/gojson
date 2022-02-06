@@ -2,6 +2,7 @@ package logging
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -13,45 +14,68 @@ type ctxKey string
 const loggerKey ctxKey = "logger"
 
 type Logger struct {
+	// Entry for every other log level asides access logs
 	*logrus.Entry
 
-	Logger    *logrus.Logger
-	closeFunc func() error
+	accessEntry *logrus.Entry
+	closeFuncs  [2]func() error
 }
 
 func New(env, logPath string) (*Logger, error) {
-	l := logrus.New()
+	var errLogger, accessLogger *logrus.Logger
 	logger := &Logger{
-		Logger: l,
+		closeFuncs: [2]func() error{},
 	}
 	if env == "production" {
-		path := filepath.Join(logPath, "gojson.log")
-		f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+		accessPath := filepath.Join(logPath, "access.log")
+		af, err := os.OpenFile(accessPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+		if err != nil {
+			return nil, fmt.Errorf("error creating access files")
+		}
+		accessLogger = logrus.New()
+		accessLogger.Out = af
+
+		errPath := filepath.Join(logPath, "errors.log")
+		f, err := os.OpenFile(errPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 		if err != nil {
 			return nil, err
 		}
-		logger.closeFunc = f.Close
-		l.Out = f
-		l.Level = logrus.ErrorLevel
+		errLogger = logrus.New()
+		errLogger.Out = f
+
+		logger.closeFuncs[0] = af.Close
+		logger.closeFuncs[1] = f.Close
 	} else {
-		l.Level = logrus.DebugLevel
+		accessLogger = logrus.New()
+		errLogger = logrus.New()
 	}
-	logger.Entry = logrus.NewEntry(l)
+	accessLogger.Level = logrus.InfoLevel
+	logger.accessEntry = logrus.NewEntry(accessLogger)
+
+	errLogger.Level = logrus.ErrorLevel
+	logger.Entry = logrus.NewEntry(errLogger)
 	return logger, nil
 }
 
 func (l *Logger) Close() error {
-	if l.closeFunc != nil {
-		return l.closeFunc()
-	} else {
-		return nil
+	for _, c := range l.closeFuncs {
+		if c != nil {
+			if err := c(); err != nil {
+				return err
+			}
+		}
 	}
+	return nil
 }
 
 func FromContext(ctx context.Context) *Logger {
 	val, ok := ctx.Value(loggerKey).(*Logger)
 	if val == nil || !ok {
-		return &Logger{Logger: logrus.New()}
+		return &Logger{
+			accessEntry: logrus.NewEntry(logrus.New()),
+			Entry:       logrus.NewEntry(logrus.New()),
+			closeFuncs:  [2]func() error{},
+		}
 	}
 	return val
 }
@@ -64,4 +88,12 @@ func (l *Logger) WithField(key string, value interface{}) *Logger {
 	logger := *l
 	logger.Entry = logger.Entry.WithField(key, value)
 	return &logger
+}
+
+func (l *Logger) LogAccess(method string, statusCode int) {
+	l.accessEntry.WithFields(logrus.Fields{
+		"method": method,
+		"status": statusCode,
+	}).Info("new request")
+	//	l.Entry.
 }

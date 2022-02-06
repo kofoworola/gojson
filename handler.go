@@ -57,7 +57,7 @@ func NewHandler(appName string, logger *logging.Logger) (*Handler, error) {
 }
 
 func (h *Handler) HomePage(w http.ResponseWriter, req *http.Request) {
-
+	h.logger.LogAccess(http.MethodGet, http.StatusOK)
 	h.template.Execute(w, homePageData{
 		AppName: h.appName,
 		GOData:  sampleData,
@@ -107,11 +107,11 @@ func (h *Handler) PostHomePage(w http.ResponseWriter, req *http.Request) {
 		respStrings[i] = fmt.Sprintf("//%s\n%s", res.Key, res.String(0))
 	}
 
+	h.logger.LogAccess(http.MethodPost, http.StatusOK)
 	dat := homePageData{
 		GOData:   godata,
 		JSONData: strings.Join(respStrings, "\n"),
 	}
-
 	h.template.Execute(w, dat)
 
 }
@@ -123,6 +123,7 @@ func (h *Handler) respondError(w http.ResponseWriter, message, godata string, co
 		ErrorMessage: message,
 	}
 	w.WriteHeader(code)
+	h.logger.LogAccess(http.MethodPost, code)
 	h.template.Execute(w, dat)
 }
 
